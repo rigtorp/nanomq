@@ -1,0 +1,5 @@
+* Fair receiving when receiving from all nodes
+* Monitoring tool
+  * Monitor message throughput
+  * Ping nodes to check if they are running
+* Message framing, ie send message length
