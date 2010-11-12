@@ -148,13 +148,22 @@ private:
     return 1U << i;
   }
 
-  ring* get_ring(unsigned int from, unsigned int to) {
-    // TODO set errno and return error condition
-    assert(p_ != NULL);
+  // Node pair to ring
+  unsigned int np2r(unsigned int from, unsigned int to) {
     assert(from != to);
     assert(from < header_->nodes);
     assert(to < header_->nodes);
-    return &ring_[from*(to - 1) + 1];
+    if (from > to) {
+      return to * (header_->nodes - 1) + from - 1;
+    } else {
+      return to * (header_->nodes - 1) + from;
+    }
+  }
+
+  ring* get_ring(unsigned int from, unsigned int to) {
+    // TODO set errno and return error condition
+    assert(p_ != NULL);
+    return &ring_[np2r(from, to)];
   }
 
   bool send(ring *ring, const void *msg, size_t size) {
