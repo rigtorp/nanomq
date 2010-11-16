@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   const char* queue = argv[1];
-  int message_size = atoi(argv [2]);
+  size_t message_size = atoi(argv [2]);
   long roundtrip_count = atoi(argv [3]);
 
   nmq::context_t context(queue);

@@ -8,5 +8,5 @@ all: $(TARGETS)
 $(TARGETS): include/nmq.hpp
 
 clean:
-	rm -f *~
+	rm -f *~ core
 	rm -f $(TARGETS)

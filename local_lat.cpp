@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   const char* queue = argv[1];
-  int message_size = atoi(argv [2]);
+  size_t message_size = atoi(argv [2]);
   int roundtrip_count = atoi(argv [3]);
 
   nmq::context_t context(queue);
@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
   
   nmq::node_t node(context, 0);
   for (int i = 0; i != roundtrip_count; i++) {
-    node.recv(1, s, message_size);
+    node.recv(1, s, &message_size);
     node.send(1, s, message_size);
   }
 }

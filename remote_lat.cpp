@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   const char* queue = argv[1];
-  int message_size = atoi(argv [2]);
+  size_t message_size = atoi(argv [2]);
   int roundtrip_count = atoi(argv [3]);
 
   nmq::context_t context(queue);
@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
   gettimeofday(&start, NULL);
   for (int i = 0; i != roundtrip_count; i++) {
     node.send(0, s, message_size);
-    node.recv(0, s, message_size);
+    node.recv(0, s, &message_size);
   }
   gettimeofday(&stop, NULL);
   long delta = (stop.tv_sec - start.tv_sec)*1000000 + (stop.tv_usec - start.tv_usec);

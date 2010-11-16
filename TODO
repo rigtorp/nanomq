@@ -2,5 +2,6 @@
 * Monitoring tool
   * Monitor message throughput
   * Ping nodes to check if they are running
-* Message framing, ie send message length
 * Unit tests
+* Maybe allow zero length messages
+* Magic and versioning of mmap file

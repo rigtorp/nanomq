@@ -45,7 +45,7 @@ private:
     unsigned int nodes;
     unsigned int rings;
     unsigned int size;
-    unsigned int msg_size;
+    size_t msg_size;
   };
   
   typedef volatile unsigned int vo_uint; 
@@ -54,8 +54,8 @@ private:
   struct ring {
     
     unsigned int _size;
-    unsigned int _msg_size;
-    unsigned int _offset;
+    size_t _msg_size;
+    size_t _offset;
     
     // R/W access by the reader
     // R/O access by the writer
@@ -97,7 +97,7 @@ public:
     header_->nodes = nodes;
     header_->rings = n_rings;
     header_->size = real_size - 1;
-    header_->msg_size = msg_size;
+    header_->msg_size = msg_size + sizeof(size_t);
 
     for (unsigned int i = 0; i < header_->rings; i++) {
       ring_[i]._size = real_size - 1;
@@ -133,7 +133,7 @@ public:
   }
   
   void print() {
-    printf("nodes: %u, size: %u, msgsz: %u\n", header_->nodes, header_->size, header_->msg_size);
+    printf("nodes: %u, size: %u, msgsz: %lu\n", header_->nodes, header_->size, header_->msg_size);
     for (unsigned int i = 0; i < header_->rings; i++) {
       printf("%3i: %10u %10u\n", i, ring_[i]._head, ring_[i]._tail);
     }
@@ -167,7 +167,7 @@ private:
   }
 
   bool send(ring *ring, const void *msg, size_t size) {
-    assert(size <= ring->_msg_size);
+    assert(size <= (ring->_msg_size - sizeof(size_t)));
 
     unsigned int h = (ring->_head - 1) & ring->_size;
     unsigned int t = ring->_tail;
@@ -175,7 +175,8 @@ private:
       return false;
 
     char *d = &data_[ring_->_offset + t*ring->_msg_size];
-    memcpy(d, msg, size);
+    memcpy(d, &size, sizeof(size));
+    memcpy(d + sizeof(size), msg, size);
     
     // Barrier is needed to make sure that item is updated 
     // before it's made available to the reader
@@ -196,14 +197,19 @@ private:
     return send(ring, msg, size);
   }
 
-  bool recv(ring *ring, void *msg, size_t size) {
+  bool recv(ring *ring, void *msg, size_t *size) {
     unsigned int t = ring->_tail;
     unsigned int h = ring->_head;
     if (h == t)
       return false;
+    
+    char *d = &data_[ring_->_offset + h*ring->_msg_size];
 
-    void *d = &data_[ring_->_offset + h*ring->_msg_size];
-    memcpy(msg, d, size);
+    size_t recv_size;
+    memcpy(&recv_size, d, sizeof(size_t));
+    assert(recv_size >= *size && "buffer too small");
+    *size = recv_size;
+    memcpy(msg, d + sizeof(size_t), recv_size);
 
     // Barrier is needed to make sure that we finished reading the item
     // before moving the head
@@ -213,36 +219,34 @@ private:
     return true;
   }
 
-  bool recv(unsigned int from, unsigned int to, void *msg, size_t size) {
+  bool recv(unsigned int from, unsigned int to, void *msg, size_t *size) {
     ring *ring = get_ring(from, to);
     while (!recv(ring, msg, size)) bones::cpu::__relax();
     return true;
   }
 
-  bool recvnb(unsigned int from, unsigned int to, void *s, int size) {
+  bool recvnb(unsigned int from, unsigned int to, void *s, size_t *size) {
     return recv(get_ring(from, to), s, size);
   }
   
-  bool recv(unsigned int to, void *msg, size_t size) {
+  bool recv(unsigned int to, void *msg, size_t *size) {
     // TODO "fair" receiving
     while (true) {
       for (unsigned int i = 0; i < header_->nodes; i++) {
-        if (to != i && recvnb(i, to, msg, size) != -1) return true;
+        if (to != i && recvnb(i, to, msg, size)) return true;
       }
       bones::cpu::__relax();
     }
     return false;
   }
 
-  bool recvnb(unsigned int to, void *msg, size_t size) {
+  ssize_t recvnb(unsigned int to, void *msg, size_t *size) {
     // TODO "fair" receiving
     for (unsigned int i = 0; i < header_->nodes; i++) {
-      if (to != i && recvnb(i, to, msg, size) != -1) return true;
+      if (to != i && recvnb(i, to, msg, size)) return true;
     }
     return false;
   }
-
-
 
   std::string fname_;
   void *p_;
@@ -267,27 +271,27 @@ public:
     //assert(node < context_->nodes());
   }
 
-  bool send(unsigned int to, const void *msg, int size) {
+  bool send(unsigned int to, const void *msg, size_t size) {
     return context_->send(node_, to, msg, size);
   }
 
-  bool sendnb(unsigned int to, const void *msg, int size) {
+  bool sendnb(unsigned int to, const void *msg, size_t size) {
     return context_->sendnb(node_, to, msg, size);
   }
 
-  bool recv(unsigned int from, void *msg, int size) {
+  bool recv(unsigned int from, void *msg, size_t *size) {
     return context_->recv(from, node_, msg, size);
   }
 
-  bool recvnb(unsigned int from, void *msg, int size) {
+  bool recvnb(unsigned int from, void *msg, size_t *size) {
     return context_->recvnb(from, node_, msg, size);
   }
 
-  bool recv(void *msg, int size) {
+  bool recv(void *msg, size_t *size) {
     return context_->recv(node_, msg, size);
   }
 
-  bool recvnb(void *msg, int size) {
+  bool recvnb(void *msg, size_t *size) {
     return context_->recvnb(node_, msg, size);
   }
 
