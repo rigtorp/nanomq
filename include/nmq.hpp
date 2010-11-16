@@ -207,7 +207,7 @@ private:
 
     size_t recv_size;
     memcpy(&recv_size, d, sizeof(size_t));
-    assert(recv_size >= *size && "buffer too small");
+    assert(recv_size <= *size && "buffer too small");
     *size = recv_size;
     memcpy(msg, d + sizeof(size_t), recv_size);
 

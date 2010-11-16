@@ -4,4 +4,5 @@
   * Ping nodes to check if they are running
 * Unit tests
 * Maybe allow zero length messages
-* Magic and versioning of mmap file
+* Magic and version of mmap() file
+* Support context using mkstemp() for in process communication and testing
