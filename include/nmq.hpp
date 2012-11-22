@@ -25,6 +25,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include <cassert>
 #include <cstring>
@@ -57,13 +58,15 @@ private:
     size_t _msg_size;
     size_t _offset;
     
+    char _pad1[128];
     // R/W access by the reader
     // R/O access by the writer
-    vo_uint       _head;
-    
+    vo_uint _head;
+
+    char _pad2[128];    
     // R/W access by the writer
     // R/O access by the reader
-    vo_uint       _tail;
+    vo_uint _tail;
   };
 
 public:
